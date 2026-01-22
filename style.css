@@ -1,0 +1,58 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f6fa;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.timetable {
+  position: relative;
+  display: grid;
+  grid-template-columns: 80px repeat(5, 1fr);
+  border: 1px solid #ccc;
+  background: white;
+}
+
+.time-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.time {
+  height: 60px;
+  border-bottom: 1px solid #eee;
+  text-align: center;
+  line-height: 60px;
+  font-size: 12px;
+}
+
+.days {
+  display: contents;
+}
+
+.day {
+  position: relative;
+  border-left: 1px solid #ccc;
+  height: 540px;
+}
+
+.class {
+  position: absolute;
+  left: 5%;
+  width: 90%;
+  color: white;
+  border-radius: 6px;
+  padding: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
