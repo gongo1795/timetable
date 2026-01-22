@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 시간표 매니저</title>
+    <title>스마트 시간표 (자동저장)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
@@ -51,6 +51,7 @@
         .btn-parse { background: var(--accent-color); margin-top: 5px; }
         .btn-add-manual { background: var(--secondary-color); margin-top: 5px; }
         .btn-register { background: var(--primary-color); margin-top: 15px; font-size: 16px; padding: 15px; }
+        .btn-reset-all { background: #ff6b6b; margin-top: 10px; font-size: 12px; padding: 8px; }
 
         .divider-text { 
             display: flex; align-items: center; color: #999; font-size: 12px; margin: 15px 0; 
@@ -78,7 +79,7 @@
         }
         .temp-time-item:last-child { margin-bottom: 0; }
 
-        .course-list-area { border-top: 2px solid #eee; padding-top: 15px; }
+        .course-list-area { border-top: 2px solid #eee; padding-top: 15px; position: relative; }
         .registered-item { 
             display: flex; align-items: flex-start; justify-content: space-between;
             padding: 12px; margin-bottom: 8px; background: #f8f9fa; 
@@ -122,7 +123,7 @@
 </head>
 <body>
 
-    <h1>📅 스마트 시간표 매니저</h1>
+    <h1>📅 스마트 시간표 (자동저장)</h1>
 
     <div class="main-container">
         <div class="sidebar">
@@ -171,7 +172,10 @@
             </div>
 
             <div class="course-list-area">
-                <h3>등록된 수업 목록</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>등록된 수업 목록</h3>
+                    <button class="btn-reset-all" onclick="resetAllData()">전체 초기화</button>
+                </div>
                 <div id="course-list">
                     <div style="text-align:center; color:#999; padding:20px; font-size:13px;">
                         등록된 수업이 없습니다.
@@ -209,6 +213,7 @@
         let tempSchedules = []; 
         const colors = ['#5C7CFA', '#F03E3E', '#37B24D', '#F59F00', '#7048E8', '#1098AD', '#AE3EC9', '#E64980'];
 
+        // --- 초기화 함수 ---
         function initTimeSelectors() {
             const hours = [];
             for(let i=START_HOUR; i<=END_HOUR; i++) hours.push(String(i).padStart(2,'0'));
@@ -239,26 +244,43 @@
             }
         }
 
-        // --- 1. 텍스트 파싱 로직 (업그레이드됨) ---
+        // --- 💾 저장소 관련 함수 (핵심) ---
+        function saveToLocal() {
+            // registeredCourses 배열을 JSON 문자열로 변환해 저장
+            localStorage.setItem('myTimetableData', JSON.stringify(registeredCourses));
+        }
+
+        function loadFromLocal() {
+            const savedData = localStorage.getItem('myTimetableData');
+            if (savedData) {
+                registeredCourses = JSON.parse(savedData);
+                updateCourseList();
+                renderTimetable();
+            }
+        }
+
+        function resetAllData() {
+            if(confirm("모든 수업 정보를 삭제하시겠습니까? (복구 불가)")) {
+                localStorage.removeItem('myTimetableData');
+                registeredCourses = [];
+                updateCourseList();
+                renderTimetable();
+            }
+        }
+
+        // --- 시간표 로직 ---
         function parseAndAddSchedule() {
             let text = document.getElementById('textInput').value;
             if (!text.trim()) return alert("텍스트를 입력해주세요.");
 
-            // 1단계: 모든 공백과 줄바꿈을 제거하여 깨진 텍스트(14:1\n5)를 연결
-            // 예: "금요일(14:30~\n15:45)" -> "금요일(14:30~15:45)"
             const cleanText = text.replace(/\s+/g, '');
-
-            // 2단계: 정규표현식으로 패턴 찾기
-            // 패턴: [요일] + ( + 숫자:숫자 + ~또는- + 숫자:숫자 + )
-            // 괄호는 있어도 되고 없어도 되게 처리 (\(?, \)?)
             const regex = /([월화수목금])[요일]*\(?(\d{1,2}):(\d{2})[~-](\d{1,2}):(\d{2})\)?/g;
             
             let match;
             let count = 0;
 
-            // cleanText에서 반복적으로 찾기
             while ((match = regex.exec(cleanText)) !== null) {
-                const dayStr = match[1]; // 월, 화...
+                const dayStr = match[1];
                 const startH = match[2].padStart(2, '0');
                 const startM = match[3];
                 const endH = match[4].padStart(2, '0');
@@ -286,7 +308,6 @@
             }
         }
 
-        // --- 2. 수동 추가 로직 ---
         function addScheduleManual() {
             const day = document.getElementById('day').value;
             const sh = document.getElementById('startHour').value;
@@ -308,7 +329,6 @@
             renderTempSchedules();
         }
 
-        // 임시 시간 목록 렌더링
         function renderTempSchedules() {
             const container = document.getElementById('temp-schedule-list');
             if (tempSchedules.length === 0) {
@@ -332,7 +352,6 @@
             renderTempSchedules();
         }
 
-        // 최종 등록
         function registerFinalCourse() {
             const subject = document.getElementById('subject').value;
             const professor = document.getElementById('professor').value;
@@ -350,6 +369,9 @@
 
             registeredCourses.push(newCourse);
             
+            // 데이터 변경 시 자동 저장
+            saveToLocal();
+
             document.getElementById('subject').value = '';
             document.getElementById('professor').value = '';
             tempSchedules = [];
@@ -423,12 +445,14 @@
             }
             
             course.selected = !course.selected;
+            saveToLocal(); // 상태 변경 시 저장
             renderTimetable();
         }
 
         function deleteCourse(id) {
             if(confirm("이 수업을 삭제하시겠습니까?")) {
                 registeredCourses = registeredCourses.filter(c => c.id !== id);
+                saveToLocal(); // 삭제 시 저장
                 updateCourseList();
                 renderTimetable();
             }
@@ -481,8 +505,10 @@
             });
         }
 
+        // 실행 순서
         initTimeSelectors();
         initTimetable();
+        loadFromLocal(); // 저장된 데이터 불러오기
     </script>
 </body>
 </html>
