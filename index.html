@@ -43,7 +43,7 @@
             padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; width: 100%; 
         }
         
-        textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+        textarea { resize: vertical; min-height: 80px; font-family: inherit; line-height: 1.4; }
 
         button { color: white; border: none; cursor: pointer; font-weight: bold; transition: opacity 0.2s; }
         button:hover { opacity: 0.9; }
@@ -52,7 +52,6 @@
         .btn-add-manual { background: var(--secondary-color); margin-top: 5px; }
         .btn-register { background: var(--primary-color); margin-top: 15px; font-size: 16px; padding: 15px; }
 
-        /* 탭 같은 구분선 */
         .divider-text { 
             display: flex; align-items: center; color: #999; font-size: 12px; margin: 15px 0; 
         }
@@ -68,7 +67,6 @@
         .time-select-box { display: flex; gap: 5px; align-items: center; }
         .time-select-box select { flex: 1; min-width: 0; padding: 8px 2px; text-align: center; font-size: 13px;}
 
-        /* 추가된 시간 목록 (임시) */
         .temp-time-list { 
             background: #fff; border: 2px dashed #ddd; border-radius: 8px; 
             padding: 10px; margin-top: 15px; min-height: 50px;
@@ -80,7 +78,6 @@
         }
         .temp-time-item:last-child { margin-bottom: 0; }
 
-        /* 등록된 수업 리스트 */
         .course-list-area { border-top: 2px solid #eee; padding-top: 15px; }
         .registered-item { 
             display: flex; align-items: flex-start; justify-content: space-between;
@@ -95,7 +92,6 @@
         }
         .delete-btn { width: auto; background: none; color: #ff6b6b; padding: 0 5px; font-size: 18px; margin-left: 5px; }
 
-        /* --- 시간표 섹션 --- */
         .timetable-section { 
             flex-grow: 1; background: white; padding: 20px; 
             border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
@@ -117,7 +113,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.15); font-size: 12px; line-height: 1.2;
         }
 
-        /* 모바일 대응 */
         @media (max-width: 900px) {
             .main-container { flex-direction: column; align-items: center; }
             .sidebar { width: 100%; max-width: 500px; }
@@ -137,7 +132,7 @@
                 <input type="text" id="professor" placeholder="교수명 (예: 손승일)">
                 
                 <div class="divider-text">간편 입력 (텍스트 붙여넣기)</div>
-                <textarea id="textInput" placeholder="예: 화 11:00-12:15, 목 09:30~10:45&#13;&#10;(여러 시간 동시에 입력 가능)"></textarea>
+                <textarea id="textInput" placeholder="예: 금요일(13:00~14:15),&#13;&#10;금요일(14:30~15:45)&#13;&#10;(괄호, 줄바꿈 섞여 있어도 OK)"></textarea>
                 <button class="btn-parse" onclick="parseAndAddSchedule()">텍스트 분석하여 시간 추가</button>
 
                 <div class="divider-text">또는 직접 선택</div>
@@ -244,19 +239,25 @@
             }
         }
 
-        // --- 1. 텍스트 파싱 로직 (핵심 기능) ---
+        // --- 1. 텍스트 파싱 로직 (업그레이드됨) ---
         function parseAndAddSchedule() {
-            const text = document.getElementById('textInput').value;
+            let text = document.getElementById('textInput').value;
             if (!text.trim()) return alert("텍스트를 입력해주세요.");
 
-            // 정규표현식: 요일(월~금) + 공백 + 시:분 + ~또는- + 시:분
-            // 예: "화 10:00-11:30", "목요일 14:00~15:30"
-            const regex = /([월화수목금])[요일]*\s*(\d{1,2}):(\d{2})\s*[~-]\s*(\d{1,2}):(\d{2})/g;
+            // 1단계: 모든 공백과 줄바꿈을 제거하여 깨진 텍스트(14:1\n5)를 연결
+            // 예: "금요일(14:30~\n15:45)" -> "금요일(14:30~15:45)"
+            const cleanText = text.replace(/\s+/g, '');
+
+            // 2단계: 정규표현식으로 패턴 찾기
+            // 패턴: [요일] + ( + 숫자:숫자 + ~또는- + 숫자:숫자 + )
+            // 괄호는 있어도 되고 없어도 되게 처리 (\(?, \)?)
+            const regex = /([월화수목금])[요일]*\(?(\d{1,2}):(\d{2})[~-](\d{1,2}):(\d{2})\)?/g;
             
             let match;
             let count = 0;
 
-            while ((match = regex.exec(text)) !== null) {
+            // cleanText에서 반복적으로 찾기
+            while ((match = regex.exec(cleanText)) !== null) {
                 const dayStr = match[1]; // 월, 화...
                 const startH = match[2].padStart(2, '0');
                 const startM = match[3];
@@ -267,7 +268,7 @@
                 const startTime = `${startH}:${startM}`;
                 const endTime = `${endH}:${endM}`;
 
-                if (startTime >= endTime) continue; // 시간 오류 건너뜀
+                if (startTime >= endTime) continue; 
 
                 tempSchedules.push({
                     day: dayIdx,
@@ -279,10 +280,9 @@
 
             if (count > 0) {
                 renderTempSchedules();
-                document.getElementById('textInput').value = ''; // 입력창 초기화
-                // alert(`${count}개의 시간대가 추가되었습니다.`); // (선택사항)
+                document.getElementById('textInput').value = ''; 
             } else {
-                alert("시간 정보를 찾을 수 없습니다.\n올바른 형식(예: 화 13:00~14:30)인지 확인해주세요.");
+                alert("시간 정보를 찾을 수 없습니다.\n형식을 확인해주세요 (예: 금요일(13:00~14:15))");
             }
         }
 
