@@ -22,6 +22,12 @@
         button { background: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: bold; }
         button:hover { opacity: 0.9; }
         
+        /* 시간 선택 박스 스타일 */
+        .time-select-group { display: flex; align-items: center; gap: 5px; }
+        .time-select-group span { font-size: 12px; color: #666; font-weight: bold; width: 30px; }
+        .time-select-box { display: flex; gap: 2px; flex: 1; }
+        .time-select-box select { flex: 1; min-width: 0; padding: 8px 5px; }
+
         .course-list-area { border-top: 2px solid #eee; padding-top: 15px; }
         .registered-item { 
             display: flex; align-items: center; justify-content: space-between;
@@ -66,10 +72,20 @@
                     <option value="4">목요일</option>
                     <option value="5">금요일</option>
                 </select>
-                <div style="display:flex; gap:5px;">
-                    <input type="time" id="startTime" value="09:00" step="300" style="flex:1">
-                    <input type="time" id="endTime" value="10:30" step="300" style="flex:1">
+                
+                <div class="time-select-group">
+                    <span>시작</span>
+                    <div class="time-select-box">
+                        <select id="startHour"></select> : <select id="startMin"></select>
+                    </div>
                 </div>
+                <div class="time-select-group">
+                    <span>종료</span>
+                    <div class="time-select-box">
+                        <select id="endHour"></select> : <select id="endMin"></select>
+                    </div>
+                </div>
+
                 <button onclick="registerCourse()">수업 리스트에 등록</button>
             </div>
 
@@ -102,10 +118,33 @@
     <script>
         const START_HOUR = 9;
         const END_HOUR = 19;
-        const ROW_HEIGHT = 45; // CSS의 td height와 일치해야 함
+        const ROW_HEIGHT = 45; 
         
         let registeredCourses = [];
         const colors = ['#5C7CFA', '#F03E3E', '#37B24D', '#F59F00', '#7048E8', '#1098AD', '#AE3EC9'];
+
+        // 0. 초기화: 시간 선택 옵션 생성 (5분 단위)
+        function initTimeSelectors() {
+            const hours = [];
+            for(let i=9; i<=19; i++) hours.push(String(i).padStart(2,'0'));
+            
+            const minutes = [];
+            for(let i=0; i<60; i+=5) minutes.push(String(i).padStart(2,'0')); // 0, 5, 10...
+
+            ['startHour', 'endHour'].forEach(id => {
+                const select = document.getElementById(id);
+                hours.forEach(h => select.add(new Option(h, h)));
+            });
+
+            ['startMin', 'endMin'].forEach(id => {
+                const select = document.getElementById(id);
+                minutes.forEach(m => select.add(new Option(m, m)));
+            });
+            
+            // 기본값 설정
+            document.getElementById('endHour').value = '10'; // 종료 기본 10시
+            document.getElementById('endMin').value = '30';  // 종료 기본 30분
+        }
 
         // 1. 시간표 테이블 초기 생성
         function initTimetable() {
@@ -125,10 +164,17 @@
             const subject = document.getElementById('subject').value;
             const professor = document.getElementById('professor').value;
             const day = document.getElementById('day').value;
-            const startTime = document.getElementById('startTime').value;
-            const endTime = document.getElementById('endTime').value;
+            
+            // 변경된 부분: Select 박스에서 값 가져와서 합치기
+            const sh = document.getElementById('startHour').value;
+            const sm = document.getElementById('startMin').value;
+            const eh = document.getElementById('endHour').value;
+            const em = document.getElementById('endMin').value;
 
-            if (!subject || !startTime || !endTime) return alert("필수 정보를 입력해주세요.");
+            const startTime = `${sh}:${sm}`;
+            const endTime = `${eh}:${em}`;
+
+            if (!subject) return alert("수업 이름을 입력해주세요.");
             if (startTime >= endTime) return alert("시작 시간이 종료 시간보다 빠를 수 없습니다.");
 
             const newCourse = {
@@ -136,7 +182,7 @@
                 subject, professor, day,
                 start: startTime,
                 end: endTime,
-                selected: true, // 기본으로 선택됨
+                selected: true, 
                 color: colors[registeredCourses.length % colors.length]
             };
 
@@ -144,12 +190,12 @@
             updateCourseList();
             renderTimetable();
             
-            // 입력창 초기화
+            // 입력창 초기화 (수업명, 교수명만)
             document.getElementById('subject').value = '';
             document.getElementById('professor').value = '';
         }
 
-        // 3. 왼쪽 리스트 UI 업데이트
+        // 3. UI 업데이트
         function updateCourseList() {
             const listDiv = document.getElementById('course-list');
             listDiv.innerHTML = '';
@@ -164,7 +210,7 @@
                         <strong>${course.subject}</strong><br>
                         <small>${course.professor} | ${course.start}~${course.end}</small>
                     </div>
-                    <button onclick="deleteCourse(${course.id})" style="background:none; color:#ff6b6b; padding:0 5px;">✕</button>
+                    <button onclick="deleteCourse(${course.id})" style="background:none; color:#ff6b6b; padding:0 5px; cursor:pointer; border:none;">✕</button>
                 `;
                 listDiv.appendChild(item);
             });
@@ -174,7 +220,6 @@
         function toggleSelection(id) {
             const course = registeredCourses.find(c => c.id === id);
             if (course) {
-                // 선택 시 겹침 체크
                 if (!course.selected) {
                     const overlapping = registeredCourses.find(c => 
                         c.selected && c.day === course.day && 
@@ -196,21 +241,14 @@
             renderTimetable();
         }
 
-        // 6. 시간표에 수업 그리기
+        // 6. 시간표 그리기
         function renderTimetable() {
-            // 기존 카드 모두 제거
             document.querySelectorAll('.course-card').forEach(el => el.remove());
-
             const tbody = document.getElementById('timetable-body');
             
             registeredCourses.filter(c => c.selected).forEach(course => {
-                const startArr = course.start.split(':').map(Number);
-                const endArr = course.end.split(':').map(Number);
-
-                const startH = startArr[0];
-                const startM = startArr[1];
-                const endH = endArr[0];
-                const endM = endArr[1];
+                const [startH, startM] = course.start.split(':').map(Number);
+                const [endH, endM] = course.end.split(':').map(Number);
 
                 if (startH < START_HOUR || endH > END_HOUR) return;
 
@@ -234,8 +272,7 @@
 
         // 7. 이미지 저장
         function saveAsImage() {
-            const container = document.getElementById('timetable-container');
-            html2canvas(container).then(canvas => {
+            html2canvas(document.getElementById('timetable-container')).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'my-timetable.png';
                 link.href = canvas.toDataURL();
@@ -243,6 +280,8 @@
             });
         }
 
+        // 실행
+        initTimeSelectors();
         initTimetable();
     </script>
 </body>
