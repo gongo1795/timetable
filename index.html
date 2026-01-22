@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>반응형 다중 시간표 매니저</title>
+    <title>스마트 시간표 매니저</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --primary-color: #4a90e2;
             --secondary-color: #6c757d;
+            --accent-color: #7950f2;
             --bg-color: #f0f2f5;
             --sidebar-width: 380px;
         }
@@ -38,32 +39,44 @@
 
         .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         
-        input, select, button { 
+        input, select, textarea, button { 
             padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; width: 100%; 
         }
+        
+        textarea { resize: vertical; min-height: 60px; font-family: inherit; }
 
         button { color: white; border: none; cursor: pointer; font-weight: bold; transition: opacity 0.2s; }
         button:hover { opacity: 0.9; }
 
-        .btn-add-time { background: var(--secondary-color); margin-top: 5px; }
-        .btn-register { background: var(--primary-color); margin-top: 10px; font-size: 16px; }
+        .btn-parse { background: var(--accent-color); margin-top: 5px; }
+        .btn-add-manual { background: var(--secondary-color); margin-top: 5px; }
+        .btn-register { background: var(--primary-color); margin-top: 15px; font-size: 16px; padding: 15px; }
 
-        /* 시간 선택 박스 */
-        .time-select-row { display: flex; gap: 10px; }
+        /* 탭 같은 구분선 */
+        .divider-text { 
+            display: flex; align-items: center; color: #999; font-size: 12px; margin: 15px 0; 
+        }
+        .divider-text::before, .divider-text::after {
+            content: ""; flex: 1; border-bottom: 1px solid #eee; margin: 0 10px;
+        }
+
+        /* 시간 선택 박스 (수동) */
+        .manual-section { background: #fdfdfd; padding: 10px; border: 1px solid #eee; border-radius: 8px; }
+        .time-select-row { display: flex; gap: 10px; margin-top: 5px;}
         .time-select-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-        .time-select-label { font-size: 12px; color: #666; font-weight: bold; }
+        .time-select-label { font-size: 11px; color: #666; font-weight: bold; }
         .time-select-box { display: flex; gap: 5px; align-items: center; }
-        .time-select-box select { flex: 1; min-width: 0; padding: 10px 5px; text-align: center;}
+        .time-select-box select { flex: 1; min-width: 0; padding: 8px 2px; text-align: center; font-size: 13px;}
 
         /* 추가된 시간 목록 (임시) */
         .temp-time-list { 
-            background: #f8f9fa; border: 1px dashed #ccc; border-radius: 8px; 
-            padding: 10px; margin-top: 5px; min-height: 40px;
+            background: #fff; border: 2px dashed #ddd; border-radius: 8px; 
+            padding: 10px; margin-top: 15px; min-height: 50px;
         }
         .temp-time-item {
             display: flex; justify-content: space-between; align-items: center;
-            font-size: 13px; color: #555; background: white; 
-            padding: 6px 10px; margin-bottom: 5px; border-radius: 4px; border: 1px solid #eee;
+            font-size: 13px; color: #444; background: #f1f3f5; 
+            padding: 8px 12px; margin-bottom: 5px; border-radius: 6px;
         }
         .temp-time-item:last-child { margin-bottom: 0; }
 
@@ -114,7 +127,7 @@
 </head>
 <body>
 
-    <h1>📅 대학생 주간 시간표</h1>
+    <h1>📅 스마트 시간표 매니저</h1>
 
     <div class="main-container">
         <div class="sidebar">
@@ -123,41 +136,43 @@
                 <input type="text" id="subject" placeholder="수업 이름 (예: 공학설계입문)">
                 <input type="text" id="professor" placeholder="교수명 (예: 손승일)">
                 
-                <div style="border-top:1px dashed #ddd; margin:10px 0;"></div>
-                
-                <span class="time-select-label">요일 및 시간 설정</span>
-                <select id="day">
-                    <option value="1">월요일</option>
-                    <option value="2">화요일</option>
-                    <option value="3">수요일</option>
-                    <option value="4">목요일</option>
-                    <option value="5">금요일</option>
-                </select>
-                
-                <div class="time-select-row">
-                    <div class="time-select-group">
-                        <span class="time-select-label">시작</span>
-                        <div class="time-select-box">
-                            <select id="startHour"></select> : <select id="startMin"></select>
-                        </div>
-                    </div>
-                    <div class="time-select-group">
-                        <span class="time-select-label">종료</span>
-                        <div class="time-select-box">
-                            <select id="endHour"></select> : <select id="endMin"></select>
-                        </div>
-                    </div>
-                </div>
+                <div class="divider-text">간편 입력 (텍스트 붙여넣기)</div>
+                <textarea id="textInput" placeholder="예: 화 11:00-12:15, 목 09:30~10:45&#13;&#10;(여러 시간 동시에 입력 가능)"></textarea>
+                <button class="btn-parse" onclick="parseAndAddSchedule()">텍스트 분석하여 시간 추가</button>
 
-                <button class="btn-add-time" onclick="addScheduleToTemp()">+ 이 시간 추가하기</button>
+                <div class="divider-text">또는 직접 선택</div>
+                <div class="manual-section">
+                    <select id="day">
+                        <option value="1">월요일</option>
+                        <option value="2">화요일</option>
+                        <option value="3">수요일</option>
+                        <option value="4">목요일</option>
+                        <option value="5">금요일</option>
+                    </select>
+                    <div class="time-select-row">
+                        <div class="time-select-group">
+                            <span class="time-select-label">시작</span>
+                            <div class="time-select-box">
+                                <select id="startHour"></select> : <select id="startMin"></select>
+                            </div>
+                        </div>
+                        <div class="time-select-group">
+                            <span class="time-select-label">종료</span>
+                            <div class="time-select-box">
+                                <select id="endHour"></select> : <select id="endMin"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-add-manual" onclick="addScheduleManual()">시간 추가</button>
+                </div>
 
                 <div class="temp-time-list" id="temp-schedule-list">
                     <div style="color:#aaa; text-align:center; padding:10px; font-size:12px;">
-                        시간을 설정하고 위 버튼을 눌러주세요.
+                        추가된 시간이 여기에 표시됩니다.
                     </div>
                 </div>
 
-                <button class="btn-register" onclick="registerFinalCourse()">수업 최종 등록</button>
+                <button class="btn-register" onclick="registerFinalCourse()">이대로 수업 등록하기</button>
             </div>
 
             <div class="course-list-area">
@@ -193,15 +208,15 @@
         const END_HOUR = 19;
         const ROW_HEIGHT = 45; 
         const DAY_NAMES = {1:'월', 2:'화', 3:'수', 4:'목', 5:'금'};
+        const DAY_MAP = {'월':1, '화':2, '수':3, '목':4, '금':5, '월요일':1, '화요일':2, '수요일':3, '목요일':4, '금요일':5};
         
         let registeredCourses = [];
-        let tempSchedules = []; // 현재 작성 중인 수업의 시간들 임시 저장
+        let tempSchedules = []; 
         const colors = ['#5C7CFA', '#F03E3E', '#37B24D', '#F59F00', '#7048E8', '#1098AD', '#AE3EC9', '#E64980'];
 
         function initTimeSelectors() {
             const hours = [];
             for(let i=START_HOUR; i<=END_HOUR; i++) hours.push(String(i).padStart(2,'0'));
-            
             const minutes = [];
             for(let i=0; i<60; i+=5) minutes.push(String(i).padStart(2,'0'));
 
@@ -209,12 +224,10 @@
                 const select = document.getElementById(id);
                 hours.forEach(h => select.add(new Option(h, h)));
             });
-
             ['startMin', 'endMin'].forEach(id => {
                 const select = document.getElementById(id);
                 minutes.forEach(m => select.add(new Option(m, m)));
             });
-            
             document.getElementById('endHour').value = '10'; 
             document.getElementById('endMin').value = '15';  
         }
@@ -231,8 +244,50 @@
             }
         }
 
-        // 1. "이 시간 추가하기" 버튼 클릭 시 -> 임시 배열에 저장
-        function addScheduleToTemp() {
+        // --- 1. 텍스트 파싱 로직 (핵심 기능) ---
+        function parseAndAddSchedule() {
+            const text = document.getElementById('textInput').value;
+            if (!text.trim()) return alert("텍스트를 입력해주세요.");
+
+            // 정규표현식: 요일(월~금) + 공백 + 시:분 + ~또는- + 시:분
+            // 예: "화 10:00-11:30", "목요일 14:00~15:30"
+            const regex = /([월화수목금])[요일]*\s*(\d{1,2}):(\d{2})\s*[~-]\s*(\d{1,2}):(\d{2})/g;
+            
+            let match;
+            let count = 0;
+
+            while ((match = regex.exec(text)) !== null) {
+                const dayStr = match[1]; // 월, 화...
+                const startH = match[2].padStart(2, '0');
+                const startM = match[3];
+                const endH = match[4].padStart(2, '0');
+                const endM = match[5];
+
+                const dayIdx = DAY_MAP[dayStr];
+                const startTime = `${startH}:${startM}`;
+                const endTime = `${endH}:${endM}`;
+
+                if (startTime >= endTime) continue; // 시간 오류 건너뜀
+
+                tempSchedules.push({
+                    day: dayIdx,
+                    start: startTime,
+                    end: endTime
+                });
+                count++;
+            }
+
+            if (count > 0) {
+                renderTempSchedules();
+                document.getElementById('textInput').value = ''; // 입력창 초기화
+                // alert(`${count}개의 시간대가 추가되었습니다.`); // (선택사항)
+            } else {
+                alert("시간 정보를 찾을 수 없습니다.\n올바른 형식(예: 화 13:00~14:30)인지 확인해주세요.");
+            }
+        }
+
+        // --- 2. 수동 추가 로직 ---
+        function addScheduleManual() {
             const day = document.getElementById('day').value;
             const sh = document.getElementById('startHour').value;
             const sm = document.getElementById('startMin').value;
@@ -244,7 +299,6 @@
 
             if (startTime >= endTime) return alert("종료 시간은 시작 시간보다 늦어야 합니다.");
 
-            // 임시 저장
             tempSchedules.push({
                 day: parseInt(day),
                 start: startTime,
@@ -254,11 +308,11 @@
             renderTempSchedules();
         }
 
-        // 임시 저장된 시간 목록 보여주기
+        // 임시 시간 목록 렌더링
         function renderTempSchedules() {
             const container = document.getElementById('temp-schedule-list');
             if (tempSchedules.length === 0) {
-                container.innerHTML = '<div style="color:#aaa; text-align:center; padding:10px; font-size:12px;">시간을 설정하고 위 버튼을 눌러주세요.</div>';
+                container.innerHTML = '<div style="color:#aaa; text-align:center; padding:10px; font-size:12px;">추가된 시간이 여기에 표시됩니다.</div>';
                 return;
             }
             container.innerHTML = '';
@@ -278,7 +332,7 @@
             renderTempSchedules();
         }
 
-        // 2. "수업 최종 등록" 버튼 클릭 시
+        // 최종 등록
         function registerFinalCourse() {
             const subject = document.getElementById('subject').value;
             const professor = document.getElementById('professor').value;
@@ -289,14 +343,13 @@
             const newCourse = {
                 id: Date.now(),
                 subject, professor,
-                schedules: [...tempSchedules], // 임시 배열 복사
+                schedules: [...tempSchedules],
                 selected: true,
                 color: colors[registeredCourses.length % colors.length]
             };
 
             registeredCourses.push(newCourse);
             
-            // 초기화
             document.getElementById('subject').value = '';
             document.getElementById('professor').value = '';
             tempSchedules = [];
@@ -306,7 +359,6 @@
             renderTimetable();
         }
 
-        // 3. 수업 리스트 UI
         function updateCourseList() {
             const listDiv = document.getElementById('course-list');
             listDiv.innerHTML = '';
@@ -321,7 +373,6 @@
                 item.className = 'registered-item';
                 item.style.borderLeftColor = course.color;
                 
-                // 시간표 정보 문자열 생성
                 let scheduleBadges = course.schedules.map(sch => 
                     `<span class="schedule-badge">${DAY_NAMES[sch.day]} ${sch.start}~${sch.end}</span>`
                 ).join('');
@@ -340,20 +391,16 @@
             });
         }
 
-        // 4. 체크박스 토글 (중복 검사 포함)
         function toggleSelection(id) {
             const course = registeredCourses.find(c => c.id === id);
             if (!course) return;
 
             if (!course.selected) {
-                // 켜려고 할 때 겹침 검사
                 let isOverlap = false;
                 let overlapName = '';
 
-                // 현재 활성화된 다른 모든 수업들과 비교
                 const activeCourses = registeredCourses.filter(c => c.selected && c.id !== id);
                 
-                // 2중 루프로 모든 시간 조각 비교 (단순 무식하지만 확실한 방법)
                 outerLoop:
                 for (let other of activeCourses) {
                     for (let s1 of course.schedules) {
@@ -387,13 +434,11 @@
             }
         }
 
-        // 5. 시간표 렌더링 (다중 시간 지원)
         function renderTimetable() {
             document.querySelectorAll('.course-card').forEach(el => el.remove());
             const tbody = document.getElementById('timetable-body');
             
             registeredCourses.filter(c => c.selected).forEach(course => {
-                // 각 수업의 모든 스케줄을 순회하며 그리기
                 course.schedules.forEach(sch => {
                     const [startH, startM] = sch.start.split(':').map(Number);
                     const [endH, endM] = sch.end.split(':').map(Number);
@@ -401,10 +446,9 @@
                     if (startH < START_HOUR || endH > END_HOUR) return;
 
                     const rowIdx = startH - START_HOUR;
-                    // 행이 범위를 벗어나지 않는지 체크
                     if (rowIdx < 0 || rowIdx >= tbody.rows.length) return;
 
-                    const targetCell = tbody.rows[rowIdx].cells[sch.day]; // 1~5
+                    const targetCell = tbody.rows[rowIdx].cells[sch.day];
 
                     const topOffset = (startM / 60) * ROW_HEIGHT;
                     const durationMin = (endH * 60 + endM) - (startH * 60 + startM);
@@ -431,7 +475,7 @@
             const element = document.getElementById('timetable-container');
             html2canvas(element, { scale: 2 }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'university_timetable.png';
+                link.download = 'my_timetable.png';
                 link.href = canvas.toDataURL();
                 link.click();
             });
