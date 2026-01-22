@@ -3,55 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>선택형 주간 시간표 매니저</title>
+    <title>반응형 시간표 매니저</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --primary-color: #4a90e2;
             --bg-color: #f0f2f5;
+            --sidebar-width: 350px;
         }
 
-        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-color); padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        
-        .main-container { display: flex; gap: 20px; max-width: 1200px; width: 100%; align-items: flex-start; }
+        * { box-sizing: border-box; } /* 모든 요소의 크기 계산을 테두리 포함으로 통일 */
 
-        /* 왼쪽: 입력 및 리스트 섹션 */
-        .sidebar { width: 350px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-        input, select, button { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        button { background: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: bold; }
+        body { 
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; 
+            background-color: var(--bg-color); 
+            margin: 0;
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        
+        h1 { margin-bottom: 20px; text-align: center; font-size: 1.5rem; }
+
+        /* 메인 컨테이너: 데스크탑에서는 가로 배치, 모바일에서는 세로 배치 */
+        .main-container { 
+            display: flex; 
+            gap: 20px; 
+            max-width: 1200px; 
+            width: 100%; 
+            align-items: flex-start; 
+        }
+
+        /* --- 왼쪽: 사이드바 (입력 및 리스트) --- */
+        .sidebar { 
+            width: var(--sidebar-width); 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+            flex-shrink: 0; /* 사이드바 크기 줄어들지 않게 고정 */
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        
+        input, select, button { 
+            padding: 12px; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            width: 100%; /* 모바일 대응을 위해 꽉 차게 */
+        }
+
+        button { 
+            background: var(--primary-color); 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: opacity 0.2s;
+        }
         button:hover { opacity: 0.9; }
         
         /* 시간 선택 박스 스타일 */
-        .time-select-group { display: flex; align-items: center; gap: 5px; }
-        .time-select-group span { font-size: 12px; color: #666; font-weight: bold; width: 30px; }
-        .time-select-box { display: flex; gap: 2px; flex: 1; }
-        .time-select-box select { flex: 1; min-width: 0; padding: 8px 5px; }
+        .time-select-row { display: flex; gap: 10px; }
+        .time-select-group { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 5px; 
+        }
+        .time-select-label { font-size: 12px; color: #666; font-weight: bold; }
+        .time-select-box { display: flex; gap: 5px; align-items: center; }
+        .time-select-box select { flex: 1; min-width: 0; padding: 10px 5px; text-align: center;}
 
+        /* 등록된 리스트 영역 */
         .course-list-area { border-top: 2px solid #eee; padding-top: 15px; }
         .registered-item { 
             display: flex; align-items: center; justify-content: space-between;
-            padding: 10px; margin-bottom: 8px; background: #f8f9fa; border-radius: 6px; border-left: 5px solid #ccc;
+            padding: 12px; margin-bottom: 8px; background: #f8f9fa; 
+            border-radius: 8px; border-left: 5px solid #ccc;
         }
-        .item-info { flex-grow: 1; margin-left: 10px; font-size: 13px; }
+        .registered-item input[type="checkbox"] { width: 20px; height: 20px; margin-right: 10px; }
+        .item-info { flex-grow: 1; font-size: 14px; line-height: 1.4; }
+        .delete-btn { width: auto; background: none; color: #ff6b6b; padding: 5px 10px; font-size: 16px; }
 
-        /* 오른쪽: 시간표 섹션 */
-        .timetable-section { flex-grow: 1; background: white; padding: 20px; border-radius: 12px; }
+        /* --- 오른쪽: 시간표 섹션 --- */
+        .timetable-section { 
+            flex-grow: 1; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            width: 100%; /* 부모에 맞춰 꽉 차게 */
+            overflow: hidden; /* 내부 스크롤 제어 */
+        }
+        
         .controls { margin-bottom: 15px; text-align: right; }
-        .save-btn { background: #28a745; }
+        .save-btn { background: #28a745; width: auto; padding: 10px 20px; }
 
-        #timetable-container { background: white; padding: 10px; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th, td { border: 1px solid #eee; height: 45px; text-align: center; position: relative; font-size: 12px; }
-        th { background: #f8f9fa; color: #666; height: 35px; }
-        .time-col { width: 60px; color: #999; }
+        /* 시간표 테이블 컨테이너 (스크롤 가능하게) */
+        #timetable-container { 
+            background: white; 
+            border-radius: 8px; 
+            overflow-x: auto; /* 내용이 넘치면 가로 스크롤 생성 */
+            padding-bottom: 10px;
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            table-layout: fixed; 
+            min-width: 600px; /* 모바일에서도 표가 너무 작아지지 않게 최소 너비 설정 */
+        }
+
+        th, td { border: 1px solid #eee; height: 45px; text-align: center; position: relative; font-size: 13px; }
+        th { background: #f8f9fa; color: #555; height: 40px; font-weight: 600; }
+        .time-col { width: 70px; color: #888; background: #fafafa; font-size: 12px; }
 
         /* 시간표 내부 수업 카드 */
         .course-card {
-            position: absolute; left: 2px; right: 2px; border-radius: 4px;
+            position: absolute; left: 3px; right: 3px; border-radius: 6px;
             padding: 4px; color: white; font-weight: bold; z-index: 5;
             display: flex; flex-direction: column; justify-content: center; overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-size: 11px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15); font-size: 12px;
+            line-height: 1.2;
+        }
+
+        /* --- 📱 반응형 미디어 쿼리 --- */
+        @media (max-width: 900px) {
+            .main-container { 
+                flex-direction: column; /* 세로 배치로 변경 */
+                align-items: center;
+            }
+            .sidebar { 
+                width: 100%; /* 사이드바 꽉 차게 */
+                max-width: 500px; 
+            }
+            .timetable-section { 
+                width: 100%; 
+            }
         }
     </style>
 </head>
@@ -61,7 +152,7 @@
 
     <div class="main-container">
         <div class="sidebar">
-            <h3>수업 정보 입력</h3>
+            <h3>수업 추가</h3>
             <div class="input-group">
                 <input type="text" id="subject" placeholder="수업 이름 (예: 자료구조)">
                 <input type="text" id="professor" placeholder="교수명">
@@ -73,32 +164,37 @@
                     <option value="5">금요일</option>
                 </select>
                 
-                <div class="time-select-group">
-                    <span>시작</span>
-                    <div class="time-select-box">
-                        <select id="startHour"></select> : <select id="startMin"></select>
+                <div class="time-select-row">
+                    <div class="time-select-group">
+                        <span class="time-select-label">시작 시간</span>
+                        <div class="time-select-box">
+                            <select id="startHour"></select> : <select id="startMin"></select>
+                        </div>
                     </div>
-                </div>
-                <div class="time-select-group">
-                    <span>종료</span>
-                    <div class="time-select-box">
-                        <select id="endHour"></select> : <select id="endMin"></select>
+                    <div class="time-select-group">
+                        <span class="time-select-label">종료 시간</span>
+                        <div class="time-select-box">
+                            <select id="endHour"></select> : <select id="endMin"></select>
+                        </div>
                     </div>
                 </div>
 
-                <button onclick="registerCourse()">수업 리스트에 등록</button>
+                <button onclick="registerCourse()">+ 리스트에 등록</button>
             </div>
 
             <div class="course-list-area">
                 <h3>등록된 수업 목록</h3>
                 <div id="course-list">
+                    <div style="text-align:center; color:#999; padding:20px; font-size:13px;">
+                        아직 등록된 수업이 없습니다.
                     </div>
+                </div>
             </div>
         </div>
 
         <div class="timetable-section">
             <div class="controls">
-                <button class="save-btn" onclick="saveAsImage()">이미지로 저장하기</button>
+                <button class="save-btn" onclick="saveAsImage()">📸 이미지 저장</button>
             </div>
             <div id="timetable-container">
                 <table id="timetable">
@@ -126,7 +222,7 @@
         // 0. 초기화: 시간 선택 옵션 생성 (5분 단위)
         function initTimeSelectors() {
             const hours = [];
-            for(let i=9; i<=19; i++) hours.push(String(i).padStart(2,'0'));
+            for(let i=START_HOUR; i<=END_HOUR; i++) hours.push(String(i).padStart(2,'0'));
             
             const minutes = [];
             for(let i=0; i<60; i+=5) minutes.push(String(i).padStart(2,'0')); // 0, 5, 10...
@@ -142,8 +238,8 @@
             });
             
             // 기본값 설정
-            document.getElementById('endHour').value = '10'; // 종료 기본 10시
-            document.getElementById('endMin').value = '30';  // 종료 기본 30분
+            document.getElementById('endHour').value = '10'; 
+            document.getElementById('endMin').value = '30';  
         }
 
         // 1. 시간표 테이블 초기 생성
@@ -165,7 +261,6 @@
             const professor = document.getElementById('professor').value;
             const day = document.getElementById('day').value;
             
-            // 변경된 부분: Select 박스에서 값 가져와서 합치기
             const sh = document.getElementById('startHour').value;
             const sm = document.getElementById('startMin').value;
             const eh = document.getElementById('endHour').value;
@@ -175,7 +270,7 @@
             const endTime = `${eh}:${em}`;
 
             if (!subject) return alert("수업 이름을 입력해주세요.");
-            if (startTime >= endTime) return alert("시작 시간이 종료 시간보다 빠를 수 없습니다.");
+            if (startTime >= endTime) return alert("종료 시간은 시작 시간보다 늦어야 합니다.");
 
             const newCourse = {
                 id: Date.now(),
@@ -190,7 +285,7 @@
             updateCourseList();
             renderTimetable();
             
-            // 입력창 초기화 (수업명, 교수명만)
+            // 입력창 초기화
             document.getElementById('subject').value = '';
             document.getElementById('professor').value = '';
         }
@@ -200,6 +295,11 @@
             const listDiv = document.getElementById('course-list');
             listDiv.innerHTML = '';
 
+            if (registeredCourses.length === 0) {
+                listDiv.innerHTML = '<div style="text-align:center; color:#999; padding:20px; font-size:13px;">등록된 수업이 없습니다.</div>';
+                return;
+            }
+
             registeredCourses.forEach(course => {
                 const item = document.createElement('div');
                 item.className = 'registered-item';
@@ -207,10 +307,11 @@
                 item.innerHTML = `
                     <input type="checkbox" ${course.selected ? 'checked' : ''} onchange="toggleSelection(${course.id})">
                     <div class="item-info">
-                        <strong>${course.subject}</strong><br>
-                        <small>${course.professor} | ${course.start}~${course.end}</small>
+                        <strong>${course.subject}</strong>
+                        <div style="color:#666; font-size:12px;">${course.professor || '교수 미정'}</div>
+                        <div style="color:#888; font-size:11px;">${course.start} ~ ${course.end}</div>
                     </div>
-                    <button onclick="deleteCourse(${course.id})" style="background:none; color:#ff6b6b; padding:0 5px; cursor:pointer; border:none;">✕</button>
+                    <button class="delete-btn" onclick="deleteCourse(${course.id})">✕</button>
                 `;
                 listDiv.appendChild(item);
             });
@@ -226,7 +327,7 @@
                         ((course.start >= c.start && course.start < c.end) || (course.end > c.start && course.end <= c.end))
                     );
                     if (overlapping) {
-                        alert(`경고: '${overlapping.subject}' 수업과 시간이 겹칩니다!`);
+                        alert(`⚠️ 시간 중복 경고: \n'${overlapping.subject}' 수업과 시간이 겹칩니다!`);
                     }
                 }
                 course.selected = !course.selected;
@@ -236,9 +337,11 @@
 
         // 5. 수업 삭제
         function deleteCourse(id) {
-            registeredCourses = registeredCourses.filter(c => c.id !== id);
-            updateCourseList();
-            renderTimetable();
+            if(confirm("정말 이 수업을 삭제하시겠습니까?")) {
+                registeredCourses = registeredCourses.filter(c => c.id !== id);
+                updateCourseList();
+                renderTimetable();
+            }
         }
 
         // 6. 시간표 그리기
@@ -263,18 +366,31 @@
                 card.className = 'course-card';
                 card.style.backgroundColor = course.color;
                 card.style.top = `${topOffset + 1}px`;
-                card.style.height = `${height - 2}px`;
-                card.innerHTML = `<div>${course.subject}</div><div style="font-size:9px; opacity:0.8">${course.professor}</div>`;
+                card.style.height = `${height - 2}px`; // 여백 미세 조정
+                
+                // 칸이 작으면 내용 줄이기
+                if (height < 30) {
+                     card.innerHTML = `<div style="font-size:10px; line-height:1;">${course.subject}</div>`;
+                } else {
+                     card.innerHTML = `<div>${course.subject}</div><div style="font-size:10px; opacity:0.8; font-weight:normal">${course.professor}</div>`;
+                }
                 
                 targetCell.appendChild(card);
             });
         }
 
-        // 7. 이미지 저장
+        // 7. 이미지 저장 (화면 크기에 따라 캡처 방식 대응)
         function saveAsImage() {
-            html2canvas(document.getElementById('timetable-container')).then(canvas => {
+            const element = document.getElementById('timetable-container');
+            
+            // 모바일에서 스크롤된 영역까지 모두 찍기 위해
+            html2canvas(element, {
+                scrollX: 0,
+                scrollY: 0,
+                scale: 2 // 고해상도
+            }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'my-timetable.png';
+                link.download = 'my_timetable.png';
                 link.href = canvas.toDataURL();
                 link.click();
             });
