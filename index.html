@@ -2,72 +2,260 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>대학교 시간표 생성기</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
+  <title>대학 시간표 생성기</title>
+  <style>
+    :root {
+      --cell-height: 14px; /* 5분 단위 */
+      --time-start: 9; /* 9시 시작 */
+      --time-end: 21; /* 21시 종료 */
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f6fa;
+    }
+
+    h1 { text-align: center; }
+
+    .container {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    /* 수업 등록 영역 */
+    .panel {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .panel h2 { margin-top: 0; }
+
+    label {
+      display: block;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    input, select, button {
+      width: 100%;
+      margin-top: 4px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #e5e7eb;
+      color: #111;
+      margin-top: 6px;
+    }
+
+    /* 수업 리스트 */
+    .class-list {
+      margin-top: 12px;
+    }
+
+    .class-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f9fafb;
+      padding: 8px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    /* 시간표 */
+    .timetable-wrapper {
+      overflow: auto;
+    }
+
+    .timetable {
+      display: grid;
+      grid-template-columns: 40px repeat(5, 1fr);
+      position: relative;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .timetable div {
+      border: 1px solid #e5e7eb;
+      box-sizing: border-box;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .day-header {
+      background: #f3f4f6;
+      font-weight: bold;
+    }
+
+    .time-label {
+      background: #f9fafb;
+    }
+
+    .class-block {
+      position: absolute;
+      color: #fff;
+      padding: 4px;
+      border-radius: 8px;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+
+    /* 반응형 */
+    @media (max-width: 1024px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .timetable {
+        font-size: 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 20px; }
+      .panel { padding: 12px; }
+    }
+  </style>
 </head>
 <body>
+  <h1>📘 대학 시간표 생성기</h1>
 
-<h1>📘 시간표 만들기</h1>
+  <div class="container">
+    <!-- 입력 패널 -->
+    <div class="panel">
+      <h2>수업 등록</h2>
+      <label>수업 이름<input id="name" /></label>
+      <label>교수명<input id="prof" /></label>
+      <label>요일
+        <select id="day">
+          <option value="1">월</option>
+          <option value="2">화</option>
+          <option value="3">수</option>
+          <option value="4">목</option>
+          <option value="5">금</option>
+        </select>
+      </label>
+      <label>시작 시간<input type="time" step="300" id="start" /></label>
+      <label>종료 시간<input type="time" step="300" id="end" /></label>
+      <button onclick="addClass()">수업 추가</button>
 
-<!-- 시간표 선택 -->
-<section class="top">
-  <select id="timetableSelect"></select>
-  <button onclick="createTimetable()">➕ 새 시간표</button>
-</section>
+      <div class="class-list" id="classList"></div>
+    </div>
 
-<!-- 수업 등록 -->
-<section class="form">
-  <input id="nameInput" placeholder="수업명" />
-  <input id="professorInput" placeholder="교수명" />
-
-  <select id="daySelect">
-    <option value="0">월</option>
-    <option value="1">화</option>
-    <option value="2">수</option>
-    <option value="3">목</option>
-    <option value="4">금</option>
-  </select>
-
-  <input type="time" id="startInput" />
-  <input type="time" id="endInput" />
-
-  <button onclick="addClass()">수업 등록</button>
-</section>
-
-<div class="layout">
-  <!-- 수업 목록 -->
-  <section class="list">
-    <h2>📋 수업 목록</h2>
-    <ul id="classList"></ul>
-  </section>
-
-  <!-- 시간표 -->
-  <div class="timetable-wrap">
-    <div class="timetable" id="timetable">
-      <div class="time-column">
-        <div class="time">09</div>
-        <div class="time">10</div>
-        <div class="time">11</div>
-        <div class="time">12</div>
-        <div class="time">13</div>
-        <div class="time">14</div>
-        <div class="time">15</div>
-        <div class="time">16</div>
-        <div class="time">17</div>
-      </div>
-
-      <div class="days">
-        <div class="day"></div>
-        <div class="day"></div>
-        <div class="day"></div>
-        <div class="day"></div>
-        <div class="day"></div>
-      </div>
+    <!-- 시간표 -->
+    <div class="panel timetable-wrapper">
+      <h2>시간표</h2>
+      <div class="timetable" id="timetable"></div>
     </div>
   </div>
-</div>
 
-<script src="script.js"></script>
+  <script>
+    const timetable = document.getElementById('timetable');
+    const classList = document.getElementById('classList');
+
+    const classes = [];
+    const colors = ['#6366f1','#22c55e','#f97316','#ec4899','#06b6d4'];
+
+    const startHour = 9;
+    const endHour = 21;
+    const slotsPerHour = 12; // 5분 단위
+
+    function buildGrid() {
+      timetable.innerHTML = '';
+      timetable.style.gridTemplateRows = `32px repeat(${(endHour-startHour)*slotsPerHour}, var(--cell-height))`;
+
+      timetable.appendChild(document.createElement('div'));
+      ['월','화','수','목','금'].forEach(d => {
+        const el = document.createElement('div');
+        el.textContent = d;
+        el.className = 'day-header';
+        timetable.appendChild(el);
+      });
+
+      for(let h=startHour; h<endHour; h++){
+        const time = document.createElement('div');
+        const displayHour = h > 12 ? h - 12 : h;
+        time.textContent = displayHour;
+        time.className = 'time-label';
+        timetable.appendChild(time);
+        for(let d=0; d<5; d++){
+          timetable.appendChild(document.createElement('div'));
+        }
+      }
+    }
+
+    function addClass(){
+      const c = {
+        id: Date.now(),
+        name: name.value,
+        prof: prof.value,
+        day: Number(day.value),
+        start: start.value,
+        end: end.value,
+        active: true,
+        color: colors[classes.length % colors.length]
+      };
+      classes.push(c);
+      renderClassList();
+      renderBlocks();
+    }
+
+    function renderClassList(){
+      classList.innerHTML = '';
+      classes.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'class-item';
+        div.innerHTML = `<label><input type="checkbox" ${c.active?'checked':''} onchange="toggle(${c.id})"> ${c.name}</label>`;
+        classList.appendChild(div);
+      });
+    }
+
+    function toggle(id){
+      const c = classes.find(x=>x.id===id);
+      c.active = !c.active;
+      renderBlocks();
+    }
+
+    function timeToRow(t){
+      const [h,m] = t.split(':').map(Number);
+      return ((h-startHour)*60 + m) / 5 + 1;
+    }
+
+    function renderBlocks(){
+      document.querySelectorAll('.class-block').forEach(b=>b.remove());
+      classes.filter(c=>c.active).forEach(c=>{
+        const block = document.createElement('div');
+        block.className = 'class-block';
+        block.style.background = c.color;
+        block.style.gridColumn = c.day + 1;
+        block.style.gridRow = `${timeToRow(c.start)+1} / ${timeToRow(c.end)+1}`;
+        block.textContent = `${c.name}\n${c.prof}`;
+        timetable.appendChild(block);
+      });
+    }
+
+    buildGrid();
+  </script>
 </body>
 </html>
