@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>대학교 시간표</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>📘 시간표 만들기</h1>
+
+<section class="form">
+  <input type="text" id="name" placeholder="수업명" />
+  <input type="text" id="professor" placeholder="교수명" />
+
+  <select id="day">
+    <option value="0">월</option>
+    <option value="1">화</option>
+    <option value="2">수</option>
+    <option value="3">목</option>
+    <option value="4">금</option>
+  </select>
+
+  <input type="time" id="start" />
+  <input type="time" id="end" />
+
+  <button onclick="addClass()">추가</button>
+  <button onclick="saveImage()">이미지 저장</button>
+</section>
+
+<div class="timetable" id="timetable">
+  <div class="time-column">
+    <div class="time">09:00</div>
+    <div class="time">10:00</div>
+    <div class="time">11:00</div>
+    <div class="time">12:00</div>
+    <div class="time">13:00</div>
+    <div class="time">14:00</div>
+    <div class="time">15:00</div>
+    <div class="time">16:00</div>
+    <div class="time">17:00</div>
+  </div>
+
+  <div class="days">
+    <div class="day">월</div>
+    <div class="day">화</div>
+    <div class="day">수</div>
+    <div class="day">목</div>
+    <div class="day">금</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
