@@ -2,18 +2,26 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>대학교 시간표</title>
+  <title>대학교 시간표 생성기</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
 <h1>📘 시간표 만들기</h1>
 
-<section class="form">
-  <input type="text" id="name" placeholder="수업명" />
-  <input type="text" id="professor" placeholder="교수명" />
+<!-- 시간표 선택 -->
+<section class="top">
+  <select id="timetableSelect"></select>
+  <button onclick="createTimetable()">➕ 새 시간표</button>
+</section>
 
-  <select id="day">
+<!-- 수업 등록 -->
+<section class="form">
+  <input id="nameInput" placeholder="수업명" />
+  <input id="professorInput" placeholder="교수명" />
+
+  <select id="daySelect">
     <option value="0">월</option>
     <option value="1">화</option>
     <option value="2">수</option>
@@ -21,36 +29,45 @@
     <option value="4">금</option>
   </select>
 
-  <input type="time" id="start" />
-  <input type="time" id="end" />
+  <input type="time" id="startInput" />
+  <input type="time" id="endInput" />
 
-  <button onclick="addClass()">추가</button>
-  <button onclick="saveImage()">이미지 저장</button>
+  <button onclick="addClass()">수업 등록</button>
 </section>
 
-<div class="timetable" id="timetable">
-  <div class="time-column">
-    <div class="time">09:00</div>
-    <div class="time">10:00</div>
-    <div class="time">11:00</div>
-    <div class="time">12:00</div>
-    <div class="time">13:00</div>
-    <div class="time">14:00</div>
-    <div class="time">15:00</div>
-    <div class="time">16:00</div>
-    <div class="time">17:00</div>
-  </div>
+<div class="layout">
+  <!-- 수업 목록 -->
+  <section class="list">
+    <h2>📋 수업 목록</h2>
+    <ul id="classList"></ul>
+  </section>
 
-  <div class="days">
-    <div class="day">월</div>
-    <div class="day">화</div>
-    <div class="day">수</div>
-    <div class="day">목</div>
-    <div class="day">금</div>
+  <!-- 시간표 -->
+  <div class="timetable-wrap">
+    <div class="timetable" id="timetable">
+      <div class="time-column">
+        <div class="time">09</div>
+        <div class="time">10</div>
+        <div class="time">11</div>
+        <div class="time">12</div>
+        <div class="time">13</div>
+        <div class="time">14</div>
+        <div class="time">15</div>
+        <div class="time">16</div>
+        <div class="time">17</div>
+      </div>
+
+      <div class="days">
+        <div class="day"></div>
+        <div class="day"></div>
+        <div class="day"></div>
+        <div class="day"></div>
+        <div class="day"></div>
+      </div>
+    </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
